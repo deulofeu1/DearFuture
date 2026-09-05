@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="把今天的担忧寄给未来。DearFuture 会在约定时间寻找现实证据，并寄回一封未来来信。"
+    />
+    <title>DearFuture — 把担忧寄给未来</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <header class="nav shell">
+      <a class="brand" href="/">DearFuture<span>.</span></a>
+      <nav>
+        <a class="nav-send" href="#send" data-i18n="nav.send">寄一封信</a>
+        <a href="#wall" data-i18n="nav.wall">慢递信墙</a>
+        <button
+          class="language-toggle"
+          type="button"
+          data-language-toggle
+          data-i18n="nav.language"
+        >
+          English
+        </button>
+      </nav>
+    </header>
+
+    <main>
+      <section class="hero shell">
+        <div class="hero-copy">
+          <p class="eyebrow">SLOW MAIL TO THE FUTURE</p>
+          <h1>
+            <span data-i18n="hero.title">把今天的担忧，</span
+            ><em data-i18n="hero.emphasis">寄给未来。</em>
+          </h1>
+          <p class="intro" data-i18n="hero.intro">
+            有些担心不必急着回答。把它交给慢递蜗牛，等约定的日子到了，
+            它会带着后来发生的故事，慢慢走回来。
+          </p>
+          <a class="primary-link" href="#send"
+            ><span data-i18n="hero.action">写下我的问题</span> <span>→</span></a
+          >
+        </div>
+        <aside class="postcard" aria-label="DearFuture introduction">
+          <span class="snail-stamp" aria-hidden="true">🐌</span>
+          <p data-i18n="postcard.greeting">亲爱的过去的我：</p>
+          <blockquote data-i18n="postcard.quote">
+            “你担心的事情，后来真的发生了吗？”
+          </blockquote>
+          <div class="postcard-line"></div>
+          <small data-i18n="postcard.reply">现实会慢慢回信。</small>
+        </aside>
+      </section>
+
+      <section class="stats-wrap">
+        <div class="stats shell" id="stats">
+          <div>
+            <strong>—</strong><span data-i18n="stats.sent">寄出的心事</span>
+          </div>
+          <div>
+            <strong>—</strong
+            ><span data-i18n="stats.traveling">正在慢慢赶路</span>
+          </div>
+          <div>
+            <strong>—</strong
+            ><span data-i18n="stats.arrived">回信已经送达</span>
+          </div>
+          <div>
+            <strong>—</strong
+            ><span data-i18n="stats.happened">后来真的发生</span>
+          </div>
+        </div>
+      </section>
+
+      <section id="send" class="submit-section shell">
+        <div class="section-copy">
+          <p class="eyebrow">SEND A SLOW LETTER</p>
+          <h2 data-i18n="form.title">把一件担心，交给时间</h2>
+          <p data-i18n="form.intro">
+            我们会替你收好这封信，在约定的日子看看后来发生了什么。
+          </p>
+        </div>
+        <form id="question-form" class="question-form">
+          <label
+            ><span data-i18n="form.question">你的问题</span
+            ><textarea
+              name="question"
+              required
+              minlength="5"
+              maxlength="1000"
+              placeholder="例如：一年以后，我现在担心的工作变化真的发生了吗？"
+              data-i18n-placeholder="form.questionPlaceholder"
+            ></textarea>
+          </label>
+          <div class="form-row">
+            <label
+              ><span data-i18n="form.date">想在哪一天收到？</span
+              ><input name="check_date" type="date" required
+            /></label>
+            <label
+              ><span data-i18n="form.period">约在哪个时刻？</span
+              ><select name="check_period" required>
+                <option value="08:00" data-i18n="period.morning">清晨</option>
+                <option value="12:00" data-i18n="period.noon">正午</option>
+                <option value="15:00" selected data-i18n="period.afternoon">
+                  午后
+                </option>
+                <option value="18:00" data-i18n="period.dusk">黄昏</option>
+                <option value="21:00" data-i18n="period.night">入夜</option>
+              </select></label
+            >
+          </div>
+          <div class="form-footer">
+            <button type="submit">
+              <span data-i18n="form.submit">交给慢递蜗牛</span>
+              <span>🐌</span>
+            </button>
+            <p id="form-message" class="form-message" role="status"></p>
+          </div>
+        </form>
+      </section>
+
+      <section id="wall" class="wall-section shell">
+        <div class="wall-header">
+          <div>
+            <p class="eyebrow">THE SLOW MAIL WALL</p>
+            <h2 data-i18n="wall.title">一些正在路上的心事</h2>
+          </div>
+          <select
+            id="category-filter"
+            aria-label="按分类筛选"
+            data-i18n-aria="wall.filter"
+          >
+            <option value="" data-i18n="wall.all">全部分类</option>
+            <option value="technology" data-i18n="category.technology">
+              科技与变化
+            </option>
+            <option value="career" data-i18n="category.career">
+              工作与成长
+            </option>
+            <option value="weather" data-i18n="category.weather">
+              天气与自然
+            </option>
+            <option value="society" data-i18n="category.society">
+              生活与世界
+            </option>
+            <option value="finance" data-i18n="category.finance">
+              金钱与市场
+            </option>
+            <option value="general" data-i18n="category.general">
+              其他心事
+            </option>
+          </select>
+        </div>
+        <div id="question-wall" class="wall" aria-live="polite"></div>
+      </section>
+    </main>
+
+    <footer class="shell">
+      <span>DearFuture · <span data-i18n="brand.subtitle">未来慢递</span></span
+      ><span data-i18n="footer.line">给焦虑一点时间，未来会慢慢回信。</span>
+    </footer>
+    <script src="/static/i18n.js?v=3"></script>
+    <script src="/static/app.js?v=3"></script>
+  </body>
+</html>

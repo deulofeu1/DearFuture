@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>DearFuture — 一封寄给未来的信</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <header class="nav shell">
+      <a class="brand" href="/">DearFuture<span>.</span></a>
+      <nav>
+        <a href="/#wall" data-i18n="nav.back">返回慢递信墙</a>
+        <button
+          class="language-toggle"
+          type="button"
+          data-language-toggle
+          data-i18n="nav.language"
+        >
+          English
+        </button>
+      </nav>
+    </header>
+    <main id="question-detail" class="detail shell" aria-live="polite">
+      <p class="empty" data-i18n="detail.loading">🐌 正在轻轻打开这只信封……</p>
+    </main>
+    <footer class="shell">
+      <span>DearFuture · <span data-i18n="brand.subtitle">未来慢递</span></span
+      ><span data-i18n="footer.line">给焦虑一点时间，未来会慢慢回信。</span>
+    </footer>
+    <script src="/static/i18n.js?v=3"></script>
+    <script src="/static/question.js?v=2"></script>
+  </body>
+</html>
