@@ -14,6 +14,7 @@ def test_homepage_and_health_are_available(client):
     assert "交给慢递蜗牛" in homepage.text
     assert "约在哪个时刻" in homepage.text
     assert "黄昏" in homepage.text
+    assert "12:00" in homepage.text
     assert "Agent 正在处理" not in homepage.text
     assert health.status_code == 200
     assert health.json()["database"] == "sqlite"

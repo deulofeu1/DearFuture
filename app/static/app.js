@@ -88,6 +88,29 @@ function renderWall(items) {
 }
 
 let wallItems = [];
+let processingTimer = null;
+let processingStep = 0;
+
+function showProcessingMessage() {
+  message.textContent = t(`form.processing${processingStep + 1}`);
+}
+
+function startProcessingMessages() {
+  stopProcessingMessages();
+  processingStep = 0;
+  showProcessingMessage();
+  processingTimer = window.setInterval(() => {
+    processingStep = Math.min(processingStep + 1, 2);
+    showProcessingMessage();
+  }, 3000);
+}
+
+function stopProcessingMessages() {
+  if (processingTimer !== null) {
+    window.clearInterval(processingTimer);
+    processingTimer = null;
+  }
+}
 
 async function loadWall() {
   const query = filter.value
@@ -139,7 +162,7 @@ form.addEventListener("submit", async (event) => {
   };
 
   const button = form.querySelector("button[type='submit']");
-  message.textContent = t("form.processing");
+  startProcessingMessages();
   button.disabled = true;
   try {
     const response = await fetch("/api/questions", {
@@ -158,25 +181,28 @@ form.addEventListener("submit", async (event) => {
   } catch (error) {
     message.textContent = error.message;
   } finally {
+    stopProcessingMessages();
     button.disabled = false;
   }
 });
 
 function setDefaultCheckTime() {
   const input = form.elements.check_date;
-  const nextMonth = new Date();
-  nextMonth.setMonth(nextMonth.getMonth() + 1);
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
   const localDate = new Date(
-    nextMonth.getTime() - nextMonth.getTimezoneOffset() * 60_000,
+    tomorrow.getTime() - tomorrow.getTimezoneOffset() * 60_000,
   );
   input.min = new Date(Date.now() - new Date().getTimezoneOffset() * 60_000)
     .toISOString()
     .slice(0, 10);
   input.value = localDate.toISOString().slice(0, 10);
+  form.elements.check_period.value = "12:00";
 }
 
 window.addEventListener("dearfuture:languagechange", () => {
-  message.textContent = "";
+  if (processingTimer !== null) showProcessingMessage();
+  else message.textContent = "";
   renderWall(wallItems);
 });
 filter.addEventListener("change", loadWall);
