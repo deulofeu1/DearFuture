@@ -137,6 +137,22 @@ def restore_question(db: Session, public_id: str) -> Optional[Question]:
     return question
 
 
+def retry_question(db: Session, public_id: str) -> Optional[Question]:
+    """Put an unresolved question back into the due queue for the scheduler."""
+
+    question = db.scalar(select(Question).where(Question.public_id == public_id))
+    if question is None or question.is_deleted or question.status == "resolved":
+        return None
+    question.status = "scheduled"
+    question.check_at = datetime.now(timezone.utc)
+    question.next_attempt_at = None
+    question.last_error = None
+    question.attempt_count = 0
+    _commit(db)
+    db.refresh(question)
+    return question
+
+
 def recover_interrupted_verifications(db: Session) -> int:
     """Return jobs left in ``verifying`` by a stopped process to the retry queue."""
 

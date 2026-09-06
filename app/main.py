@@ -31,6 +31,7 @@ from app.services import (
     list_public_questions,
     recover_interrupted_verifications,
     restore_question,
+    retry_question,
     soft_delete_question,
 )
 
@@ -182,6 +183,25 @@ def create_app(*, initialize_database: bool = True) -> FastAPI:
             public_id=question.public_id,
             status=question.status,
             message="Question restored.",
+        )
+
+    @application.post("/api/admin/questions/{public_id}/retry", response_model=AdminActionResponse)
+    def retry_admin_question(
+        public_id: str,
+        authorization: Optional[str] = Header(default=None),
+        db: Session = Depends(get_db),
+    ):
+        require_admin(authorization)
+        question = retry_question(db, public_id)
+        if question is None:
+            raise HTTPException(
+                status_code=409,
+                detail="Only unresolved, visible questions can be retried",
+            )
+        return AdminActionResponse(
+            public_id=question.public_id,
+            status=question.status,
+            message="Question has been placed back in the verification queue.",
         )
 
     return application
