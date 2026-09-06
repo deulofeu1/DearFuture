@@ -1,7 +1,24 @@
 from datetime import datetime, timezone
 from typing import List, Optional
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    EmailStr,
+    Field,
+    field_serializer,
+    field_validator,
+)
+
+
+def _as_utc(value: Optional[datetime]) -> Optional[datetime]:
+    """Restore UTC information lost by SQLite's timezone-naive datetime type."""
+
+    if value is None:
+        return None
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=timezone.utc)
+    return value.astimezone(timezone.utc)
 
 
 class QuestionCreate(BaseModel):
@@ -34,6 +51,10 @@ class EvidenceRead(BaseModel):
     published_at: Optional[datetime]
     retrieved_at: datetime
 
+    @field_serializer("published_at", "retrieved_at")
+    def serialize_dates(self, value: Optional[datetime]) -> Optional[datetime]:
+        return _as_utc(value)
+
 
 class QuestionRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -53,6 +74,10 @@ class QuestionRead(BaseModel):
     created_at: datetime
     resolved_at: Optional[datetime]
     evidence: List[EvidenceRead] = Field(default_factory=list)
+
+    @field_serializer("check_at", "created_at", "resolved_at")
+    def serialize_dates(self, value: Optional[datetime]) -> Optional[datetime]:
+        return _as_utc(value)
 
 
 class QuestionCreateResponse(QuestionRead):

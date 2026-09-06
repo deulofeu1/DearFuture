@@ -34,6 +34,7 @@ def test_public_question_round_trip_never_exposes_email(client):
     assert created["category"] == "technology"
     assert created["public_request_approved"] is True
     assert "email" not in created
+    assert datetime.fromisoformat(created["check_at"]).utcoffset() == timedelta(0)
 
     detail = client.get(f"/api/questions/{created['public_id']}")
     wall = client.get("/api/public/questions")

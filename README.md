@@ -1,59 +1,171 @@
-# DearFuture
+# DearFuture 🐌
 
-> 把今天的担忧寄给未来。Reality will write back.
+> 把今天的担忧，寄给未来。现实会慢慢回信。<br>
+> Send today's worries to the future. Reality will write back.
 
-DearFuture 是一个可公开使用的异步 AI Agent 产品。用户提交一个关于未来的问题，系统将它转换成可验证声明；到达约定日期后，Agent 搜索现实证据、给出判断并生成未来回信。通过隐私审核的问题会匿名展示在公开的 Future Wall。
+<p>
+  <a href="https://dearfuture-production.up.railway.app/">🌐 在线体验 / Live Demo</a>
+  ·
+  <a href="https://github.com/deulofeu1/DearFuture">💻 GitHub</a>
+</p>
 
-## 产品能力
+## 中文介绍
 
-- 可直接使用的响应式首页、问题提交表单和 Future Wall
-- 中英双语界面，语言选择会保存在浏览器中
-- 每个公开问题都有独立、可分享的详情页
-- DeepSeek V4 Flash 生成结构化声明、验证标准和内容审核结果
-- 到期后通过 Web Search 收集证据并判断预测结果
-- 用户用“清晨、正午、午后、黄昏、入夜”选择回信时刻
-- 应用内置轻量调度器，启动后每小时整点巡一次信箱
-- `happened`、`partially_happened`、`did_not_happen`、`uncertain` 四种结论
-- 模型临时失败时最多重试三次，不会错误地把失败当作结论
-- 预留可选邮件通知能力，当前网页版本暂不收集邮箱
-- SQLite WAL 模式、外键、索引、事务和 Alembic 迁移
-- API 响应永远不包含用户邮箱
-- 信件默认匿名进入慢递墙，敏感内容会被隐私审核拦截
+DearFuture 是一只寄往未来的慢递蜗牛。
 
-## 核心流程
+你可以写下一个关于未来的问题，例如：
 
-### Intake Graph
+> “一个月以后，我现在担心的工作变化真的发生了吗？”
+
+选择一个未来日期和时刻后，DearFuture 会把问题整理成可以验证的声明。约定时间到达后，异步 Agent 会搜索现实中的公开证据，判断事情后来是否发生，并生成一封来自未来的回信。
+
+现在就可以打开[在线体验](https://dearfuture-production.up.railway.app/)：
+
+1. 写下一件你正在担心的事；
+2. 选择未来的日期和“清晨 / 正午 / 午后 / 黄昏 / 入夜”；
+3. 把它交给慢递蜗牛；
+4. 之后回到详情页或慢递信墙，看看现实带回了什么答案。
+
+### 产品特点
+
+- 🌱 把模糊的焦虑转换成可以在未来检查的具体声明
+- 🐌 任务不会要求用户一直在线，到期后由定时调度器自动触发
+- 🔎 使用公开证据，而不是只保存模型的一句猜测
+- ✉️ 生成一封温和的未来回信，结果展示在详情页和慢递信墙
+- 🌏 支持中文 / English 页面切换
+- 🧭 每个公开问题都有独立的可分享链接
+- 🛡️ 公开展示默认匿名，并对明显的个人敏感内容进行审核
+
+### 当前版本说明
+
+当前网页版本暂时不收集邮箱，也不会发送邮件。验证完成后，结果会出现在问题详情页和慢递信墙中。邮件通知模块已经预留，未来可以接入 Resend 等事务邮件服务。
+
+### 结果状态
+
+| 状态 | 含义 |
+| --- | --- |
+| `scheduled` | 信件已经寄出，正在等待约定的未来时刻 |
+| `verifying` | 慢递蜗牛正在寻找现实证据 |
+| `resolved` | 验证完成，回信已经送达 |
+| `retry_pending` | 外部服务暂时没有回应，稍后会再次尝试 |
+| `uncertain` | 公开证据不足，未来暂时没有给出明确答案 |
+
+---
+
+## English
+
+DearFuture is a slow-mail service for worries about the future.
+
+Write down a future-facing question such as:
+
+> “Will the change I am worried about at work really happen within a month?”
+
+Choose a future date and a gentle time of day. DearFuture turns the question into a testable claim. When the date arrives, an asynchronous AI agent searches public evidence, evaluates what actually happened, and writes a warm letter back to the past you.
+
+Try it now at the [Live Demo](https://dearfuture-production.up.railway.app/):
+
+1. Write down something you are worried about;
+2. Choose a future date and time of day;
+3. Send it to the slow-mail snail;
+4. Return to the detail page or the Slow Mail Wall to see what reality brought back.
+
+### Product highlights
+
+- 🌱 Turns vague worries into concrete, verifiable future claims
+- 🐌 Runs asynchronously, so users do not need to stay online
+- 🔎 Grounds the final judgment in public evidence
+- ✉️ Generates a warm future letter and publishes the result on the detail page and wall
+- 🌏 Bilingual Chinese / English interface
+- 🧭 Shareable public detail page for every approved question
+- 🛡️ Anonymous public display with basic personal-content moderation
+
+### Current version
+
+The current web version does not collect email addresses or send email notifications. Completed results appear on the question detail page and the Slow Mail Wall. An email adapter is kept for a future Resend integration.
+
+---
+
+## How the product works
 
 ```text
-Normalize Input → Plan Claim → Moderate Publicity → Build Verification Plan
+User writes a worry
+        ↓
+FastAPI validates the request
+        ↓
+Intake Graph
+  normalize → plan claim → privacy check → build plan
+        ↓
+SQLite stores the task and its scheduled time
+        ↓
+Hourly Scheduler finds due tasks
+        ↓
+Resolution Graph
+  research evidence → route by evidence quality → judge → write letter
+        ↓
+SQLite stores the verdict, evidence and future letter
+        ↓
+The Slow Mail Wall shows the result
 ```
 
-它负责把自由文本转换为可以在未来客观检查的数据。DeepSeek 不可用时会使用保守的本地 fallback，因此提交功能不会完全依赖外部模型。
+The central idea is a **long-running asynchronous Agent workflow**: the initial HTTP request finishes quickly, while the meaningful research work is persisted and resumed later by a scheduled background process.
 
-### Resolution Graph
+## Technology highlights
+
+- **FastAPI**：网页服务、REST API、请求校验和自动 OpenAPI 文档
+- **LangGraph**：用 State、Node 和 Edge 编排两个有状态 Agent 工作流
+- **DeepSeek V4 Flash**：生成可验证声明、搜索研究结果、判断结论和未来回信
+- **Pydantic**：约束 API 输入和 LLM JSON 输出，降低模型文本的不确定性
+- **SQLAlchemy + SQLite**：保存问题、状态、证据和任务重试信息
+- **Alembic**：用版本化迁移管理数据库结构变化
+- **Asyncio Scheduler**：每小时检查到期任务，不需要用户保持在线
+- **Retry and recovery**：模型失败与证据不足分开处理，失败任务最多重试三次
+- **Privacy by design**：公开响应不包含邮箱，模型审核结合本地敏感信息规则
+- **Railway + Dockerfile**：单个轻量 Web Service，使用 Volume 持久化 SQLite
+
+## Architecture
+
+The project has two LangGraph workflows.
+
+### 1. Intake Graph
 
 ```text
-Research Evidence
-       ↓
-  Enough evidence?
-   ↙      ↓       ↘
-失败重试  正常判断  无法确定
+START
+  ↓
+normalize_input
+  ↓
+plan_claim ── DeepSeek or local fallback
+  ↓
+moderate_publicity ── model eligibility + local rules
+  ↓
+build_verification_plan
+  ↓
+END
 ```
 
-它在问题到期后调用搜索能力，要求模型返回结构化证据。只有调用成功后才会保存结论并生成未来回信。
+It converts free-form text into:
 
-## 技术栈
+- a category;
+- a concrete claim;
+- one to five verification criteria;
+- a moderation decision;
+- a readable verification plan.
 
-- **FastAPI**：网页服务、REST API、数据校验和自动接口文档
-- **LangGraph**：两条有状态、可分支的 Agent 工作流
-- **[DeepSeek V4 Flash](https://api-docs.deepseek.com/guides/responses_api/)**：声明规划、搜索研究、判断和信件生成
-- **SQLAlchemy**：数据库模型、关系查询和事务管理
-- **SQLite**：单实例正式数据库，开启 WAL、外键和 busy timeout
-- **Alembic**：版本化数据库结构
-- **SMTP**：可选结果邮件，无需绑定某一家邮件服务商
-- **HTML / CSS / JavaScript**：无前端构建链，页面可以直接学习和修改
+### 2. Resolution Graph
 
-## 数据模型
+```text
+START
+  ↓
+research_evidence
+  ↓
+route_research
+  ├── enough evidence → finalize_resolution
+  ├── insufficient evidence → finalize_inconclusive
+  └── model failure → mark_research_failed
+```
+
+Only a valid, structured model result is persisted as a resolved outcome. Insufficient evidence becomes `uncertain`; a failed model call goes to the retry queue instead of being misreported as a conclusion.
+
+## Data model
 
 ```text
 Question 1 ─── N Evidence
@@ -61,13 +173,15 @@ Question 1 ─── N Evidence
     └───────── N Notification
 ```
 
-- `questions`：问题、邮箱、声明、验证计划、状态、结论和未来回信
+- `questions`：原始问题、声明、验证计划、时间、状态、结论和未来回信
 - `evidence`：来源标题、URL、摘要、发布时间和抓取时间
-- `notifications`：邮件是否发送、失败原因和发送时间
+- `notifications`：未来邮件通知的发送状态和错误信息
 
-## 本地运行
+The public URL uses a UUID `public_id` instead of exposing the sequential database ID. Public API responses use Pydantic response models and never include the email field.
 
-项目使用 [uv](https://docs.astral.sh/uv/) 管理 Python 环境。
+## Run locally
+
+The project uses [uv](https://docs.astral.sh/uv/) to manage the Python environment.
 
 ```bash
 uv sync
@@ -75,85 +189,98 @@ cp .env.example .env
 uv run uvicorn app.main:app --reload
 ```
 
-在 `.env` 中填写：
+Set the DeepSeek key in `.env`:
 
 ```env
+DATABASE_URL=sqlite:///./dear_future.sqlite3
 DEEPSEEK_API_KEY=your-key
-```
-
-打开：
-
-- 产品首页：<http://127.0.0.1:8000>
-- API 文档：<http://127.0.0.1:8000/docs>
-- 健康检查：<http://127.0.0.1:8000/health>
-
-应用启动时会自动执行 Alembic 迁移并创建 `dear_future.sqlite3`。`.env` 和数据库文件均已被 Git 忽略。
-
-## 自动到期验证
-
-本地启动 FastAPI 后，内置调度器会立即检查一次到期问题，之后默认每小时整点巡一次信箱：
-
-```env
+DEEPSEEK_BASE_URL=https://api.deepseek.com
+DEEPSEEK_MODEL=deepseek-v4-flash
 SCHEDULER_ENABLED=true
 SCHEDULER_INTERVAL_SECONDS=3600
+MAIL_ENABLED=false
 ```
 
-因此本地使用不需要再单独启动 Worker。
+Local pages:
 
-## 独立 Worker
+- Product: <http://127.0.0.1:8000>
+- API docs: <http://127.0.0.1:8000/docs>
+- Health check: <http://127.0.0.1:8000/health>
 
-部署平台已经提供 Cron 时，可以设置 `SCHEDULER_ENABLED=false`，然后由平台定期运行：
-
-手动运行：
-
-```bash
-uv run dear-future-worker
-```
-
-也可以限制单次处理数量：
-
-```bash
-uv run dear-future-worker --limit 5
-```
-
-部署后让平台 Cron 每小时执行一次即可。Worker 只处理已经到期的问题；失败任务会在六小时后重试，最多三次。
-
-## 可选邮件配置
-
-当前网页不收集邮箱，回信直接出现在慢递墙和详情页。邮件模块作为以后扩展保留；需要恢复时，建议使用自己的域名配合事务邮件服务（例如 Resend）。
-
-先在 Resend 添加并验证一个发信域名或子域名，例如 `letters.yourdomain.com`，创建 API Key，然后配置：
-
-```env
-MAIL_ENABLED=true
-RESEND_API_KEY=re_your_api_key
-MAIL_FROM="DearFuture Slow Mail <hello@letters.yourdomain.com>"
-APP_BASE_URL=https://your-domain.com
-```
-
-应用优先通过 Resend HTTPS API 发信，因此可以在 Railway 的 Free、Trial 或 Hobby 方案运行。SMTP 仅作为备用方案保留。
-
-发件地址不一定需要对应一个真实邮箱，但建议至少准备一个可以接收回复的地址或邮件转发规则。请勿把 API Key、SMTP 密码或 `.env` 提交到 GitHub。
-
-重启应用后，可以立即发送一封试投信：
-
-```bash
-uv run dear-future-mail-test your@email.com
-```
+The application applies Alembic migrations during startup. The local SQLite database, `.env` and virtual environment are ignored by Git.
 
 ## API
 
-| Method | Path                         | Purpose                |
-| ------ | ---------------------------- | ---------------------- |
-| `POST` | `/api/questions`             | 提交问题               |
-| `GET`  | `/api/public/questions`      | Future Wall 列表       |
-| `GET`  | `/api/questions/{public_id}` | 公开问题详情           |
-| `GET`  | `/api/public/stats`          | 首页统计               |
-| `GET`  | `/health`                    | 服务、数据库和配置状态 |
+| Method | Path | Purpose |
+| --- | --- | --- |
+| `POST` | `/api/questions` | Submit a future question |
+| `GET` | `/api/public/questions` | List the Slow Mail Wall |
+| `GET` | `/api/questions/{public_id}` | Read a public question detail |
+| `GET` | `/api/public/stats` | Read public wall statistics |
+| `GET` | `/health` | Check service, database and configuration |
 
-API 仍兼容可选邮箱字段，方便以后恢复邮件通知。
+Example request:
 
-## 测试与代码检查
+```bash
+curl -X POST http://127.0.0.1:8000/api/questions \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "question": "AI 会在一个月内显著改变初级开发者的工作方式吗？",
+    "check_at": "2026-10-06T07:00:00+00:00"
+  }'
+```
+
+## Deployment
+
+The public demo is deployed on Railway:
+
+<https://dearfuture-production.up.railway.app/>
+
+For the current single-instance SQLite deployment:
+
+1. Connect the GitHub repository to a Railway service.
+2. Attach a persistent Volume with mount path `/data`.
+3. Add the following service variables:
+
+```env
+DATABASE_URL=sqlite:////data/dear_future.sqlite3
+DEEPSEEK_API_KEY=your-key
+DEEPSEEK_BASE_URL=https://api.deepseek.com
+DEEPSEEK_MODEL=deepseek-v4-flash
+APP_BASE_URL=https://dearfuture-production.up.railway.app
+SCHEDULER_ENABLED=true
+SCHEDULER_INTERVAL_SECONDS=3600
+MAIL_ENABLED=false
+```
+
+4. Generate a Railway public domain if the service does not already have one.
+5. Set the health check path to `/health`.
+6. Keep one running instance so the in-process scheduler does not claim the same task twice.
+
+SQLite is intentional here: the product has low write volume and a single service. If the product grows to multiple instances or high concurrent writes, move the database to PostgreSQL and move scheduled verification to a dedicated Worker or queue.
+
+## Project structure
+
+```text
+app/
+├── main.py       # FastAPI routes, lifespan and health check
+├── graph.py      # Intake and Resolution LangGraph workflows
+├── llm.py        # DeepSeek client and Pydantic output models
+├── models.py     # SQLAlchemy Question, Evidence and Notification models
+├── schemas.py    # API input/output contracts and datetime serialization
+├── services.py   # Business flow, transactions, retries and persistence
+├── scheduler.py  # Hourly in-process scheduler
+├── worker.py     # Optional one-shot worker entry point
+├── db.py         # SQLite engine, PRAGMA settings and migrations
+└── static/       # Bilingual HTML, CSS and JavaScript frontend
+
+migrations/
+└── versions/     # Alembic database schema history
+
+tests/            # API, graph, LLM, email and worker tests
+```
+
+## Tests and code quality
 
 ```bash
 uv run pytest
@@ -161,41 +288,33 @@ uv run ruff check app tests migrations
 uv run ruff format --check app tests migrations
 ```
 
-测试覆盖隐私审核、结构化声明、证据分支、API 隐私、公开墙、统计、到期筛选、验证成功和失败重试。
+The tests cover input validation, public-content moderation, structured Agent output, evidence branches, API privacy, due-task selection, successful resolution and retry behavior.
 
-## 项目结构
+## License
+
+This project is released under the MIT License. See [LICENSE](LICENSE).
+
+---
+
+## 中文技术补充
+
+如果你想学习这个项目的实现细节，建议按下面顺序阅读源码：
 
 ```text
-app/
-├── main.py       # FastAPI 路由与网页入口
-├── graph.py      # Intake / Resolution LangGraph
-├── llm.py        # DeepSeek 结构化调用
-├── models.py     # SQLAlchemy 三表模型
-├── schemas.py    # API 输入输出契约
-├── services.py   # 业务流程、事务与重试
-├── email.py      # Resend API 与 SMTP 通知适配器
-├── db.py         # SQLite 和迁移初始化
-├── worker.py     # Cron 入口
-└── static/       # 产品页面
+app/main.py
+  → app/schemas.py
+  → app/services.py
+  → app/graph.py
+  → app/llm.py
+  → app/models.py
+  → app/scheduler.py
 ```
 
-## 部署边界
+重点理解四个问题：
 
-SQLite 很适合 DearFuture 当前的单实例产品形态：读取多、写入相对少，部署和备份也很简单。推荐先用一个 Railway Web Service 同时运行 FastAPI 和内置调度器，不必额外拆分 Cron 或 Worker。
+1. FastAPI 如何把 HTTP 请求交给业务层；
+2. LangGraph 如何通过 State、Node 和 Edge 组织 Agent；
+3. SQLAlchemy 如何把 Python 对象保存为关系数据；
+4. Scheduler 如何让任务在未来继续执行。
 
-上线步骤：
-
-1. 初始化 Git 仓库并把代码推送到 GitHub。
-2. 在 Railway 中从 GitHub 仓库创建一个服务。
-3. 添加持久化 Volume，并挂载到 `/data`。
-4. 设置 `DATABASE_URL=sqlite:////data/dear_future.sqlite3`。
-5. 设置 `SCHEDULER_ENABLED=true`，并保持一个运行实例，避免重复执行到期任务。
-6. 配置 DeepSeek 和 `APP_BASE_URL`，并保持 `MAIL_ENABLED=false`。
-7. Railway 会自动使用仓库中的 `Dockerfile` 构建并启动应用。
-8. 在服务设置中把健康检查路径设置为 `/health`。
-9. 在 Networking 中生成 Railway 测试域名，再把该地址填写到 `APP_BASE_URL` 并重新部署。
-10. 确认完整流程后，再选择是否绑定自己的网页域名。
-
-公开发布前还应补充：隐私政策、提交频率限制或验证码、邮件订阅/退订说明，以及 SQLite 数据库的定期备份。
-
-只有当产品需要多实例横向扩展或出现持续高并发写入时，才需要迁移到 PostgreSQL。
+更完整的本地学习手册位于 `docs/dear-future-learning-guide.html`，该文件仅用于本地学习，不随本 README 发布。
