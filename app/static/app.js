@@ -171,7 +171,7 @@ form.addEventListener("submit", async (event) => {
       body: JSON.stringify(payload),
     });
     const body = await response.json();
-    if (!response.ok) throw new Error(t("form.failed"));
+    if (!response.ok) throw new Error(body.detail || t("form.failed"));
     message.innerHTML = body.public_request_approved
       ? `${escapeText(t("form.successPublic"))} <a href="/q/${encodeURIComponent(body.public_id)}">${escapeText(t("form.journey"))} →</a>`
       : escapeText(t("form.successPrivate"));

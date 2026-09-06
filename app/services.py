@@ -15,6 +15,10 @@ MAX_VERIFICATION_ATTEMPTS = 3
 RETRY_DELAY = timedelta(hours=6)
 
 
+class QuestionNeedsClarification(ValueError):
+    """Raised when intake cannot produce a meaningful claim without one fact."""
+
+
 def create_question(db: Session, payload: QuestionCreate) -> Question:
     graph_result = intake_graph.invoke(
         {
@@ -23,6 +27,11 @@ def create_question(db: Session, payload: QuestionCreate) -> Question:
             "public_requested": payload.is_public,
         }
     )
+    if graph_result.get("clarification_required"):
+        raise QuestionNeedsClarification(
+            graph_result.get("clarification_question")
+            or "为了让这封信可以被认真查证，请补充一个关键范围。"
+        )
     question = Question(
         question=graph_result["question"],
         email=str(payload.email) if payload.email else None,

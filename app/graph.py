@@ -17,6 +17,10 @@ class IntakeState(TypedDict, total=False):
     model_public_eligible: bool
     public_approved: bool
     model_used: bool
+    needs_clarification: bool
+    clarification_question: Optional[str]
+    context_summary: str
+    clarification_required: bool
 
 
 def normalize_input(state: IntakeState) -> IntakeState:
@@ -36,6 +40,18 @@ def plan_claim(state: IntakeState) -> IntakeState:
         "verification_criteria": plan.verification_criteria,
         "model_public_eligible": plan.public_eligible,
         "model_used": model_used,
+        "needs_clarification": plan.needs_clarification,
+        "clarification_question": plan.clarification_question,
+        "context_summary": plan.context_summary,
+    }
+
+
+def check_context_sufficiency(state: IntakeState) -> IntakeState:
+    """Only pause intake when the model says a key fact is truly missing."""
+
+    needs_clarification = bool(state.get("needs_clarification"))
+    return {
+        "clarification_required": needs_clarification and bool(state.get("clarification_question"))
     }
 
 
@@ -64,6 +80,7 @@ def build_verification_plan(state: IntakeState) -> IntakeState:
     return {
         "verification_plan": (
             f"在 {state['check_at']} 后检查以下声明：{state['claim']}\n"
+            f"验证范围/默认假设：{state.get('context_summary') or '按问题中明确的范围进行保守判断。'}\n"
             f"判断标准：\n{criteria}\n"
             "结论必须为 happened、partially_happened、did_not_happen 或 uncertain。"
         )
@@ -91,6 +108,7 @@ def _fallback_plan(question: str) -> ClaimPlan:
             "将来源中的事实与原始预测逐项比较",
         ],
         public_eligible=True,
+        context_summary="按问题中明确的范围进行保守判断；未指定的细节不额外追问。",
     )
 
 
@@ -98,11 +116,17 @@ def build_intake_graph():
     graph = StateGraph(IntakeState)
     graph.add_node("normalize_input", normalize_input)
     graph.add_node("plan_claim", plan_claim)
+    graph.add_node("check_context_sufficiency", check_context_sufficiency)
     graph.add_node("moderate_publicity", moderate_publicity)
     graph.add_node("build_verification_plan", build_verification_plan)
     graph.add_edge(START, "normalize_input")
     graph.add_edge("normalize_input", "plan_claim")
-    graph.add_edge("plan_claim", "moderate_publicity")
+    graph.add_edge("plan_claim", "check_context_sufficiency")
+    graph.add_conditional_edges(
+        "check_context_sufficiency",
+        lambda state: "clarification" if state.get("clarification_required") else "continue",
+        {"clarification": END, "continue": "moderate_publicity"},
+    )
     graph.add_edge("moderate_publicity", "build_verification_plan")
     graph.add_edge("build_verification_plan", END)
     return graph.compile()

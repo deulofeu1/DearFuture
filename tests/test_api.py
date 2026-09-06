@@ -79,3 +79,26 @@ def test_past_verification_date_is_rejected(client):
         },
     )
     assert response.status_code == 422
+
+
+def test_only_essential_missing_context_is_rejected(client, monkeypatch):
+    from app.llm import ClaimPlan
+
+    monkeypatch.setattr(
+        "app.graph.plan_with_model",
+        lambda _question, _check_at: ClaimPlan(
+            category="weather",
+            claim="指定日期会下雨",
+            verification_criteria=["查阅当地天气记录"],
+            public_eligible=True,
+            needs_clarification=True,
+            clarification_question="想查哪一个城市的天气呢？",
+        ),
+    )
+    response = client.post(
+        "/api/questions",
+        json={"question": "明天会不会下雨？", "check_at": future_time()},
+    )
+
+    assert response.status_code == 422
+    assert response.json()["detail"] == "想查哪一个城市的天气呢？"

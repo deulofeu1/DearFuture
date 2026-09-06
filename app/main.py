@@ -24,6 +24,7 @@ from app.schemas import (
     QuestionRead,
 )
 from app.services import (
+    QuestionNeedsClarification,
     create_question,
     get_public_question,
     get_public_stats,
@@ -116,7 +117,10 @@ def create_app(*, initialize_database: bool = True) -> FastAPI:
 
     @application.post("/api/questions", response_model=QuestionCreateResponse, status_code=201)
     def submit_question(payload: QuestionCreate, db: Session = Depends(get_db)):
-        question = create_question(db, payload)
+        try:
+            question = create_question(db, payload)
+        except QuestionNeedsClarification as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
         safe_question = QuestionRead.model_validate(question)
         return QuestionCreateResponse(
             **safe_question.model_dump(),

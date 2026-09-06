@@ -16,6 +16,9 @@ class ClaimPlan(BaseModel):
     claim: str
     verification_criteria: List[str] = Field(min_length=1, max_length=5)
     public_eligible: bool
+    needs_clarification: bool = False
+    clarification_question: Optional[str] = None
+    context_summary: str = ""
 
 
 class EvidenceResult(BaseModel):
@@ -99,7 +102,17 @@ def plan_with_model(question: str, check_at: str) -> Optional[ClaimPlan]:
             "the authoritative deadline: never shift it, extend it, or add another time "
             "period mentioned in the question on top of it. Reject public display for private, "
             "sensitive, defamatory, or personally identifying content. Reply in the same "
-            "language as the question."
+            "language as the question.\n\n"
+            "Apply a minimum-necessary-context rule. By default, proceed without asking a "
+            "follow-up question: use a broad, reasonable interpretation and record it in "
+            "context_summary. Do not ask for an exact road, route, minute, or threshold when "
+            "a city-level or category-level claim can still be verified. For example, a "
+            "question about traffic from Beijing West Railway Station to the Capital Airport "
+            "can be evaluated as a broad Beijing route-traffic question. Set "
+            "needs_clarification to true only when a missing fact makes the claim genuinely "
+            "unverifiable or creates materially different plausible answers, such as a weather "
+            "question with no location at all. If clarification is needed, ask exactly one "
+            "short, friendly question in clarification_question."
         ),
         prompt=f"Question: {question}\nVerification date: {check_at}",
     )

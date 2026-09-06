@@ -17,6 +17,32 @@ def test_intake_graph_builds_a_complete_fallback_plan(monkeypatch):
     assert result["verification_criteria"]
     assert result["public_approved"] is True
     assert result["model_used"] is False
+    assert result["clarification_required"] is False
+
+
+def test_intake_graph_only_requests_essential_context(monkeypatch):
+    monkeypatch.setattr(
+        "app.graph.plan_with_model",
+        lambda _question, _check_at: ClaimPlan(
+            category="weather",
+            claim="指定日期的天气情况可以被核对",
+            verification_criteria=["查阅当地权威天气记录"],
+            public_eligible=True,
+            needs_clarification=True,
+            clarification_question="想查哪一个城市的天气呢？",
+        ),
+    )
+    result = intake_graph.invoke(
+        {
+            "question": "明天会不会下雨？",
+            "check_at": "2026-10-05T09:00:00+08:00",
+            "public_requested": True,
+        }
+    )
+
+    assert result["clarification_required"] is True
+    assert result["clarification_question"] == "想查哪一个城市的天气呢？"
+    assert "public_approved" not in result
 
 
 def test_intake_graph_combines_model_and_privacy_rules(monkeypatch):
