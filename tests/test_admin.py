@@ -44,6 +44,9 @@ def test_admin_can_hide_and_restore_a_question(client, monkeypatch):
     assert admin_list.status_code == 200
     assert admin_list.json()[0]["public_id"] == public_id
     assert "email" not in admin_list.text
+    assert admin_list.json()[0]["model_used"] is False
+    assert admin_list.json()[0]["intake_record"]["needs_clarification"] is False
+    assert "claim" in admin_list.json()[0]["intake_record"]
 
     deleted = client.delete(f"/api/admin/questions/{public_id}", headers=admin_headers())
     assert deleted.status_code == 200

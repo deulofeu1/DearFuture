@@ -65,6 +65,9 @@
       .question h2 { margin: 0 0 8px; font-size: 19px; font-weight: 500; }
       .meta { color: var(--muted); font: 12px/1.7 Arial, sans-serif; }
       .error-detail { margin-top: 8px; color: var(--danger); font: 12px/1.6 Arial, sans-serif; }
+      .diagnostics { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
+      .diagnostics summary { color: var(--accent); cursor: pointer; font: 13px Arial, sans-serif; }
+      .diagnostics pre { max-width: 760px; overflow: auto; padding: 12px; background: #f1f3ed; color: var(--ink); font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre-wrap; }
       .status { display: inline-block; margin-left: 7px; padding: 2px 7px; border-radius: 10px; background: #edf0e9; }
       .status.deleted { color: white; background: var(--danger); }
       .actions { display: flex; align-items: center; gap: 8px; }
@@ -85,6 +88,7 @@
     <main class="shell">
       <section class="intro">
         <p>这里用于管理公开信件。移除操作是“软删除”，信件不会从数据库中真正消失，需要时可以恢复。</p>
+        <p>展开“查看模型记录”可以检查 Intake Agent 的结构化结果、验证声明、上下文假设和公开审核判断；不会展示邮箱或 API Key。</p>
         <p>管理口令只保存在当前浏览器会话中，不会显示在网址里，也不会出现在信件列表中。</p>
         <div class="login">
           <label>管理口令<input id="token" type="password" autocomplete="off" placeholder="输入 ADMIN_TOKEN" /></label>
@@ -181,6 +185,14 @@
         const error = question.last_error
           ? `<div class="error-detail">最近一次情况：${escapeHtml(question.last_error)}</div>`
           : "";
+        const intakeRecord = question.intake_record || {};
+        const diagnostics = `<details class="diagnostics">
+          <summary>查看 Intake 模型记录</summary>
+          <p class="meta">model_used：${question.model_used ? "true · DeepSeek" : "false · fallback"} · public_requested：${question.public_requested ? "true" : "false"} · is_public：${question.is_public ? "true" : "false"}</p>
+          <p class="meta">claim：${escapeHtml(question.claim)}</p>
+          <p class="meta">verification_plan：${escapeHtml(question.verification_plan)}</p>
+          <pre>${escapeHtml(JSON.stringify(intakeRecord, null, 2))}</pre>
+        </details>`;
         return `<article class="question">
           <div>
             <h2>${escapeHtml(question.question)}</h2>
@@ -188,6 +200,7 @@
               <span class="status ${deleted ? "deleted" : ""}">${escapeHtml(question.status)}</span></div>
             <div class="meta">创建于 ${formatDate(question.created_at)} · 已尝试 ${question.attempt_count} 次 · ${retryAt}</div>
             ${error}
+            ${diagnostics}
           </div>
           <div class="actions">${action}<a href="/q/${encodeURIComponent(question.public_id)}" target="_blank" rel="noopener">查看信件</a></div>
         </article>`;

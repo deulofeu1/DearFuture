@@ -32,6 +32,17 @@ def create_question(db: Session, payload: QuestionCreate) -> Question:
             graph_result.get("clarification_question")
             or "为了让这封信可以被认真查证，请补充一个关键范围。"
         )
+    intake_record = {
+        "category": graph_result["category"],
+        "claim": graph_result["claim"],
+        "verification_criteria": graph_result["verification_criteria"],
+        "public_eligible": graph_result["model_public_eligible"],
+        "needs_clarification": graph_result.get("needs_clarification", False),
+        "clarification_question": graph_result.get("clarification_question"),
+        "context_summary": graph_result.get("context_summary", ""),
+        "clarification_required": graph_result.get("clarification_required", False),
+        "model_used": graph_result["model_used"],
+    }
     question = Question(
         question=graph_result["question"],
         email=str(payload.email) if payload.email else None,
@@ -44,6 +55,7 @@ def create_question(db: Session, payload: QuestionCreate) -> Question:
         public_requested=payload.is_public,
         is_public=graph_result["public_approved"],
         model_used=graph_result["model_used"],
+        intake_record=intake_record,
     )
     db.add(question)
     _commit(db)

@@ -110,9 +110,10 @@ def plan_with_model(question: str, check_at: str) -> Optional[ClaimPlan]:
             "question about traffic from Beijing West Railway Station to the Capital Airport "
             "can be evaluated as a broad Beijing route-traffic question. Set "
             "needs_clarification to true only when a missing fact makes the claim genuinely "
-            "unverifiable or creates materially different plausible answers, such as a weather "
-            "question with no location at all. If clarification is needed, ask exactly one "
-            "short, friendly question in clarification_question."
+            "unverifiable or creates materially different plausible answers. Weather, flood, "
+            "and traffic questions need an actual city, venue, or route; phrases such as our "
+            "school, my home, or there are not precise locations by themselves. If clarification "
+            "is needed, ask exactly one short, friendly question in clarification_question."
         ),
         prompt=f"Question: {question}\nVerification date: {check_at}",
     )

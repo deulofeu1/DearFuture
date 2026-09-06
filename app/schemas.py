@@ -86,17 +86,23 @@ class QuestionCreateResponse(QuestionRead):
 
 
 class AdminQuestionRead(BaseModel):
-    """Safe management view; it intentionally excludes email and evidence details."""
+    """Management view with structured intake diagnostics, excluding email."""
 
     model_config = ConfigDict(from_attributes=True)
 
     public_id: str
     question: str
     category: str
+    claim: str
+    verification_criteria: List[str]
+    verification_plan: str
     check_at: datetime
     status: str
     is_public: bool
+    public_requested: bool
     is_deleted: bool
+    model_used: bool
+    intake_record: Optional[dict]
     outcome: Optional[str]
     attempt_count: int
     last_error: Optional[str]

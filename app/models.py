@@ -30,6 +30,7 @@ class Question(Base):
     is_deleted: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, index=True)
     deleted_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     model_used: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    intake_record: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
 
     outcome: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
     verification_summary: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
