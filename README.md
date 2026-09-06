@@ -83,6 +83,12 @@ Try it now at the [Live Demo](https://dearfuture-production.up.railway.app/):
 
 The current web version does not collect email addresses or send email notifications. Completed results appear on the question detail page and the Slow Mail Wall. An email adapter is kept for a future Resend integration.
 
+### 管理入口 / Admin access
+
+部署者可以访问 `/admin` 管理公开信件。后台使用 `ADMIN_TOKEN` 保护；“移除”是可恢复的软删除，不会物理删除数据库记录。管理页面不会展示邮箱。请在本地 `.env` 或 Railway Variables 中设置一个随机长口令，不要提交到 GitHub。
+
+The deployer can open `/admin` to manage public letters. The page is protected by `ADMIN_TOKEN`; removing a letter is a reversible soft delete, and the management view never exposes email addresses. Set a long random token in local `.env` or Railway Variables, and never commit it to GitHub.
+
 ---
 
 ## How the product works
@@ -196,6 +202,7 @@ DATABASE_URL=sqlite:///./dear_future.sqlite3
 DEEPSEEK_API_KEY=your-key
 DEEPSEEK_BASE_URL=https://api.deepseek.com
 DEEPSEEK_MODEL=deepseek-v4-flash
+ADMIN_TOKEN=your-long-random-admin-token
 SCHEDULER_ENABLED=true
 SCHEDULER_INTERVAL_SECONDS=3600
 MAIL_ENABLED=false
@@ -218,6 +225,10 @@ The application applies Alembic migrations during startup. The local SQLite data
 | `GET` | `/api/questions/{public_id}` | Read a public question detail |
 | `GET` | `/api/public/stats` | Read public wall statistics |
 | `GET` | `/health` | Check service, database and configuration |
+| `GET` | `/admin` | Open the management page |
+| `GET` | `/api/admin/questions` | List questions (Bearer token required) |
+| `DELETE` | `/api/admin/questions/{public_id}` | Hide a question (Bearer token required) |
+| `POST` | `/api/admin/questions/{public_id}/restore` | Restore a hidden question (Bearer token required) |
 
 Example request:
 
@@ -248,6 +259,7 @@ DEEPSEEK_API_KEY=your-key
 DEEPSEEK_BASE_URL=https://api.deepseek.com
 DEEPSEEK_MODEL=deepseek-v4-flash
 APP_BASE_URL=https://dearfuture-production.up.railway.app
+ADMIN_TOKEN=your-long-random-admin-token
 SCHEDULER_ENABLED=true
 SCHEDULER_INTERVAL_SECONDS=3600
 MAIL_ENABLED=false

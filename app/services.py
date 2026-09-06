@@ -45,7 +45,11 @@ def get_public_question(db: Session, public_id: str) -> Optional[Question]:
     statement = (
         select(Question)
         .options(selectinload(Question.evidence))
-        .where(Question.public_id == public_id, Question.is_public.is_(True))
+        .where(
+            Question.public_id == public_id,
+            Question.is_public.is_(True),
+            Question.is_deleted.is_(False),
+        )
     )
     return db.scalar(statement)
 
@@ -56,7 +60,7 @@ def list_public_questions(
     statement = (
         select(Question)
         .options(selectinload(Question.evidence))
-        .where(Question.is_public.is_(True))
+        .where(Question.is_public.is_(True), Question.is_deleted.is_(False))
         .order_by(Question.created_at.desc())
         .limit(limit)
     )
@@ -68,7 +72,7 @@ def list_public_questions(
 def get_public_stats(db: Session) -> Dict[str, int]:
     rows = db.execute(
         select(Question.status, Question.outcome, func.count(Question.id))
-        .where(Question.is_public.is_(True))
+        .where(Question.is_public.is_(True), Question.is_deleted.is_(False))
         .group_by(Question.status, Question.outcome)
     ).all()
     stats = {"total_public": 0, "awaiting_future": 0, "resolved": 0, "happened": 0}
@@ -90,15 +94,47 @@ def find_due_questions(
     statement = (
         select(Question)
         .where(
+            Question.is_deleted.is_(False),
             or_(
                 (Question.status == "scheduled") & (Question.check_at <= now),
                 (Question.status == "retry_pending") & (Question.next_attempt_at <= now),
-            )
+            ),
         )
         .order_by(Question.check_at)
         .limit(limit)
     )
     return list(db.scalars(statement).all())
+
+
+def list_admin_questions(db: Session, status: Optional[str] = None) -> List[Question]:
+    statement = select(Question).order_by(Question.created_at.desc()).limit(200)
+    if status:
+        statement = statement.where(Question.status == status)
+    return list(db.scalars(statement).all())
+
+
+def soft_delete_question(db: Session, public_id: str) -> Optional[Question]:
+    question = db.scalar(select(Question).where(Question.public_id == public_id))
+    if question is None:
+        return None
+    question.is_deleted = True
+    question.status = "deleted"
+    question.deleted_at = datetime.now(timezone.utc)
+    _commit(db)
+    db.refresh(question)
+    return question
+
+
+def restore_question(db: Session, public_id: str) -> Optional[Question]:
+    question = db.scalar(select(Question).where(Question.public_id == public_id))
+    if question is None:
+        return None
+    question.is_deleted = False
+    question.deleted_at = None
+    question.status = "resolved" if question.resolved_at else "scheduled"
+    _commit(db)
+    db.refresh(question)
+    return question
 
 
 def recover_interrupted_verifications(db: Session) -> int:

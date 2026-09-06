@@ -27,6 +27,8 @@ class Question(Base):
     status: Mapped[str] = mapped_column(String(32), nullable=False, default="scheduled", index=True)
     public_requested: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     is_public: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    is_deleted: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, index=True)
+    deleted_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     model_used: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
     outcome: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)

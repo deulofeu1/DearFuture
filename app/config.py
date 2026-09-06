@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     deepseek_model: str = "deepseek-v4-flash"
     llm_timeout_seconds: float = 45.0
     app_base_url: str = "http://127.0.0.1:8000"
+    admin_token: Optional[str] = None
     scheduler_enabled: bool = True
     scheduler_interval_seconds: int = 3600
     mail_enabled: bool = False

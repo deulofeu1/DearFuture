@@ -85,6 +85,36 @@ class QuestionCreateResponse(QuestionRead):
     message: str
 
 
+class AdminQuestionRead(BaseModel):
+    """Safe management view; it intentionally excludes email and evidence details."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    public_id: str
+    question: str
+    category: str
+    check_at: datetime
+    status: str
+    is_public: bool
+    is_deleted: bool
+    outcome: Optional[str]
+    attempt_count: int
+    last_error: Optional[str]
+    created_at: datetime
+    resolved_at: Optional[datetime]
+    deleted_at: Optional[datetime]
+
+    @field_serializer("check_at", "created_at", "resolved_at", "deleted_at")
+    def serialize_dates(self, value: Optional[datetime]) -> Optional[datetime]:
+        return _as_utc(value)
+
+
+class AdminActionResponse(BaseModel):
+    public_id: str
+    status: str
+    message: str
+
+
 class PublicStats(BaseModel):
     total_public: int
     awaiting_future: int

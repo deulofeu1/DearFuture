@@ -84,6 +84,17 @@ def test_failed_verification_is_scheduled_for_retry(db, monkeypatch):
     assert find_due_questions(db, now=now) == []
 
 
+def test_deleted_question_is_not_picked_up_by_scheduler(db):
+    question = make_question(
+        check_at=datetime.now(timezone.utc) - timedelta(minutes=1), status="deleted"
+    )
+    question.is_deleted = True
+    db.add(question)
+    db.commit()
+
+    assert find_due_questions(db) == []
+
+
 def test_interrupted_verification_is_recovered_on_startup(db):
     question = make_question(
         check_at=datetime.now(timezone.utc) - timedelta(minutes=1), status="verifying"

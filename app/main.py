@@ -1,9 +1,10 @@
 import asyncio
+import secrets
 from contextlib import asynccontextmanager, suppress
 from pathlib import Path
 from typing import Optional
 
-from fastapi import Depends, FastAPI, HTTPException, Query
+from fastapi import Depends, FastAPI, Header, HTTPException, Query
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
@@ -14,16 +15,40 @@ from app.config import get_settings
 from app.db import SessionLocal, get_db, init_db
 from app.llm import get_llm_client
 from app.scheduler import run_scheduler
-from app.schemas import PublicStats, QuestionCreate, QuestionCreateResponse, QuestionRead
+from app.schemas import (
+    AdminActionResponse,
+    AdminQuestionRead,
+    PublicStats,
+    QuestionCreate,
+    QuestionCreateResponse,
+    QuestionRead,
+)
 from app.services import (
     create_question,
     get_public_question,
     get_public_stats,
+    list_admin_questions,
     list_public_questions,
     recover_interrupted_verifications,
+    restore_question,
+    soft_delete_question,
 )
 
 STATIC_DIR = Path(__file__).parent / "static"
+
+
+def require_admin(authorization: Optional[str]) -> None:
+    """Protect management APIs with a bearer token kept outside the repository."""
+
+    configured_token = get_settings().admin_token
+    if not configured_token:
+        raise HTTPException(status_code=503, detail="Admin access is not configured")
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Admin authorization is required")
+
+    provided_token = authorization.removeprefix("Bearer ").strip()
+    if not secrets.compare_digest(provided_token, configured_token):
+        raise HTTPException(status_code=403, detail="Invalid admin token")
 
 
 def create_app(*, initialize_database: bool = True) -> FastAPI:
@@ -66,6 +91,10 @@ def create_app(*, initialize_database: bool = True) -> FastAPI:
     @application.get("/q/{public_id}", include_in_schema=False)
     def question_page(public_id: str):
         return FileResponse(STATIC_DIR / "question.html")
+
+    @application.get("/admin", include_in_schema=False)
+    def admin_page():
+        return FileResponse(STATIC_DIR / "admin.html")
 
     @application.get("/health")
     def health(db: Session = Depends(get_db)) -> dict:
@@ -111,6 +140,49 @@ def create_app(*, initialize_database: bool = True) -> FastAPI:
     @application.get("/api/public/stats", response_model=PublicStats)
     def read_public_stats(db: Session = Depends(get_db)):
         return get_public_stats(db)
+
+    @application.get("/api/admin/questions", response_model=list[AdminQuestionRead])
+    def read_admin_questions(
+        status: Optional[str] = Query(default=None, max_length=32),
+        authorization: Optional[str] = Header(default=None),
+        db: Session = Depends(get_db),
+    ):
+        require_admin(authorization)
+        return list_admin_questions(db, status=status)
+
+    @application.delete("/api/admin/questions/{public_id}", response_model=AdminActionResponse)
+    def delete_admin_question(
+        public_id: str,
+        authorization: Optional[str] = Header(default=None),
+        db: Session = Depends(get_db),
+    ):
+        require_admin(authorization)
+        question = soft_delete_question(db, public_id)
+        if question is None:
+            raise HTTPException(status_code=404, detail="Question not found")
+        return AdminActionResponse(
+            public_id=question.public_id,
+            status=question.status,
+            message="Question hidden from the public wall.",
+        )
+
+    @application.post(
+        "/api/admin/questions/{public_id}/restore", response_model=AdminActionResponse
+    )
+    def restore_admin_question(
+        public_id: str,
+        authorization: Optional[str] = Header(default=None),
+        db: Session = Depends(get_db),
+    ):
+        require_admin(authorization)
+        question = restore_question(db, public_id)
+        if question is None:
+            raise HTTPException(status_code=404, detail="Question not found")
+        return AdminActionResponse(
+            public_id=question.public_id,
+            status=question.status,
+            message="Question restored.",
+        )
 
     return application
 
