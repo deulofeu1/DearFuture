@@ -63,13 +63,15 @@ def test_admin_can_hide_and_restore_a_question(client, monkeypatch):
 
 def test_admin_can_retry_an_unresolved_question(client, monkeypatch):
     monkeypatch.setattr("app.main.get_settings", lambda: Settings(admin_token="test-admin-token"))
+    monkeypatch.setattr("app.main.run_manual_retry", lambda _public_id: None)
     public_id = create_public_question(client)
 
     response = client.post(f"/api/admin/questions/{public_id}/retry", headers=admin_headers())
 
     assert response.status_code == 200
-    assert response.json()["status"] == "scheduled"
+    assert response.json()["status"] == "verifying"
     question = client.get("/api/admin/questions", headers=admin_headers()).json()[0]
+    assert question["status"] == "verifying"
     assert question["attempt_count"] == 0
     assert question["next_attempt_at"] is None
 

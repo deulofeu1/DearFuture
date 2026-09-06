@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager, suppress
 from pathlib import Path
 from typing import Optional
 
-from fastapi import Depends, FastAPI, Header, HTTPException, Query
+from fastapi import BackgroundTasks, Depends, FastAPI, Header, HTTPException, Query
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
@@ -32,6 +32,7 @@ from app.services import (
     recover_interrupted_verifications,
     restore_question,
     retry_question,
+    run_manual_retry,
     soft_delete_question,
 )
 
@@ -188,6 +189,7 @@ def create_app(*, initialize_database: bool = True) -> FastAPI:
     @application.post("/api/admin/questions/{public_id}/retry", response_model=AdminActionResponse)
     def retry_admin_question(
         public_id: str,
+        background_tasks: BackgroundTasks,
         authorization: Optional[str] = Header(default=None),
         db: Session = Depends(get_db),
     ):
@@ -198,10 +200,11 @@ def create_app(*, initialize_database: bool = True) -> FastAPI:
                 status_code=409,
                 detail="Only unresolved, visible questions can be retried",
             )
+        background_tasks.add_task(run_manual_retry, question.public_id)
         return AdminActionResponse(
             public_id=question.public_id,
             status=question.status,
-            message="Question has been placed back in the verification queue.",
+            message="Question verification has started in the background.",
         )
 
     return application

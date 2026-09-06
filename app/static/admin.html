@@ -166,14 +166,16 @@
 
       function renderQuestion(question) {
         const deleted = question.is_deleted;
-        const canRetry = !deleted && question.status !== "resolved";
+        const canRetry = !deleted && !["resolved", "verifying"].includes(question.status);
         const retryAction = canRetry
           ? `<button class="secondary" data-action="retry" data-id="${escapeHtml(question.public_id)}">立即重试</button>`
           : "";
         const action = deleted
           ? `<button class="secondary" data-action="restore" data-id="${escapeHtml(question.public_id)}">恢复到信墙</button>`
           : `${retryAction}<button class="danger" data-action="delete" data-id="${escapeHtml(question.public_id)}">从信墙移除</button>`;
-        const retryAt = question.next_attempt_at
+        const retryAt = question.status === "verifying"
+          ? "正在重新验证"
+          : question.next_attempt_at
           ? `下次尝试：${formatDate(question.next_attempt_at)}`
           : "暂未安排重试";
         const error = question.last_error
@@ -201,7 +203,7 @@
               : `/api/admin/questions/${encodedId}/retry`;
           const method = action === "delete" ? "DELETE" : "POST";
           const result = await request(endpoint, { method });
-          showMessage(action === "retry" ? "已重新交给慢递蜗牛，等待下一次巡检。" : result.message);
+          showMessage(action === "retry" ? "小蜗牛已经开始重新验证这封信。" : result.message);
           await loadQuestions();
         } catch (error) {
           showMessage(error.message, true);

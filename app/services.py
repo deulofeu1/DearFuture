@@ -5,6 +5,7 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.config import get_settings
+from app.db import SessionLocal
 from app.email import send_result_email
 from app.graph import intake_graph, resolution_graph
 from app.models import Evidence, Notification, Question
@@ -138,19 +139,28 @@ def restore_question(db: Session, public_id: str) -> Optional[Question]:
 
 
 def retry_question(db: Session, public_id: str) -> Optional[Question]:
-    """Put an unresolved question back into the due queue for the scheduler."""
+    """Mark an unresolved question for an immediate background verification."""
 
     question = db.scalar(select(Question).where(Question.public_id == public_id))
-    if question is None or question.is_deleted or question.status == "resolved":
+    if question is None or question.is_deleted or question.status in {"resolved", "verifying"}:
         return None
-    question.status = "scheduled"
-    question.check_at = datetime.now(timezone.utc)
+    question.status = "verifying"
     question.next_attempt_at = None
     question.last_error = None
     question.attempt_count = 0
     _commit(db)
     db.refresh(question)
     return question
+
+
+def run_manual_retry(public_id: str) -> None:
+    """Run a manual retry in a fresh session after the admin response is sent."""
+
+    with SessionLocal() as db:
+        question = db.scalar(select(Question).where(Question.public_id == public_id))
+        if question is None or question.is_deleted or question.status != "verifying":
+            return
+        verify_question(db, question)
 
 
 def recover_interrupted_verifications(db: Session) -> int:
