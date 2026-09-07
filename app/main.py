@@ -113,6 +113,8 @@ def create_app(*, initialize_database: bool = True) -> FastAPI:
                 and (settings.resend_api_key or settings.smtp_host)
             ),
             "scheduler_enabled": settings.scheduler_enabled,
+            "scheduler_check_times": settings.scheduler_check_times,
+            "scheduler_timezone": settings.scheduler_timezone,
         }
 
     @application.post("/api/questions", response_model=QuestionCreateResponse, status_code=201)

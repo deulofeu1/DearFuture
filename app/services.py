@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from typing import Dict, List, Optional
 
 from sqlalchemy import func, or_, select
@@ -12,7 +12,6 @@ from app.models import Evidence, Notification, Question
 from app.schemas import QuestionCreate
 
 MAX_VERIFICATION_ATTEMPTS = 3
-RETRY_DELAY = timedelta(hours=6)
 
 
 class QuestionNeedsClarification(ValueError):
@@ -119,7 +118,7 @@ def find_due_questions(
             Question.is_deleted.is_(False),
             or_(
                 (Question.status == "scheduled") & (Question.check_at <= now),
-                (Question.status == "retry_pending") & (Question.next_attempt_at <= now),
+                Question.status == "retry_pending",
             ),
         )
         .order_by(Question.check_at)
@@ -199,72 +198,74 @@ def recover_interrupted_verifications(db: Session) -> int:
 
 
 def verify_question(db: Session, question: Question) -> Question:
-    question.status = "verifying"
-    question.attempt_count += 1
-    _commit(db)
-
-    result = resolution_graph.invoke(
-        {
-            "question": question.question,
-            "claim": question.claim,
-            "verification_plan": question.verification_plan,
-            "check_at": question.check_at.isoformat(),
-        }
-    )
-
-    if not result.get("succeeded"):
-        question.last_error = result.get("error", "Verification failed")
-        if question.attempt_count < MAX_VERIFICATION_ATTEMPTS:
-            question.status = "retry_pending"
-            question.next_attempt_at = datetime.now(timezone.utc) + RETRY_DELAY
-        else:
-            question.status = "failed"
+    while question.attempt_count < MAX_VERIFICATION_ATTEMPTS:
+        question.status = "verifying"
+        question.attempt_count += 1
+        question.next_attempt_at = None
         _commit(db)
+
+        result = resolution_graph.invoke(
+            {
+                "question": question.question,
+                "claim": question.claim,
+                "verification_plan": question.verification_plan,
+                "check_at": question.check_at.isoformat(),
+            }
+        )
+
+        if not result.get("succeeded"):
+            question.last_error = result.get("error", "Verification failed")
+            if question.attempt_count < MAX_VERIFICATION_ATTEMPTS:
+                continue
+            question.status = "failed"
+            _commit(db)
+            return question
+
+        question.status = "resolved"
+        question.outcome = result["outcome"]
+        question.verification_summary = result["summary"]
+        question.future_letter = result["future_letter"]
+        question.resolved_at = datetime.now(timezone.utc)
+        question.next_attempt_at = None
+        question.last_error = None
+
+        question.evidence.clear()
+        for item in result.get("evidence", []):
+            question.evidence.append(
+                Evidence(
+                    title=item["title"][:300],
+                    url=item["url"],
+                    excerpt=item["excerpt"],
+                    published_at=_parse_optional_datetime(item.get("published_at")),
+                )
+            )
+        _commit(db)
+
+        if question.email:
+            delivery = send_result_email(
+                recipient=question.email,
+                question=question.question,
+                outcome=question.outcome,
+                summary=question.verification_summary,
+                letter=question.future_letter,
+                public_url=(
+                    f"{get_settings().app_base_url}/q/{question.public_id}"
+                    if question.is_public
+                    else None
+                ),
+            )
+            db.add(
+                Notification(
+                    question_id=question.id,
+                    channel="email",
+                    status=delivery.status,
+                    error_message=delivery.error,
+                    sent_at=datetime.now(timezone.utc) if delivery.status == "sent" else None,
+                )
+            )
+            _commit(db)
         return question
 
-    question.status = "resolved"
-    question.outcome = result["outcome"]
-    question.verification_summary = result["summary"]
-    question.future_letter = result["future_letter"]
-    question.resolved_at = datetime.now(timezone.utc)
-    question.next_attempt_at = None
-    question.last_error = None
-
-    question.evidence.clear()
-    for item in result.get("evidence", []):
-        question.evidence.append(
-            Evidence(
-                title=item["title"][:300],
-                url=item["url"],
-                excerpt=item["excerpt"],
-                published_at=_parse_optional_datetime(item.get("published_at")),
-            )
-        )
-    _commit(db)
-
-    if question.email:
-        delivery = send_result_email(
-            recipient=question.email,
-            question=question.question,
-            outcome=question.outcome,
-            summary=question.verification_summary,
-            letter=question.future_letter,
-            public_url=(
-                f"{get_settings().app_base_url}/q/{question.public_id}"
-                if question.is_public
-                else None
-            ),
-        )
-        db.add(
-            Notification(
-                question_id=question.id,
-                channel="email",
-                status=delivery.status,
-                error_message=delivery.error,
-                sent_at=datetime.now(timezone.utc) if delivery.status == "sent" else None,
-            )
-        )
-        _commit(db)
     return question
 
 

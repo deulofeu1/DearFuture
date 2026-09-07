@@ -69,7 +69,7 @@ def test_worker_resolves_only_due_questions(db, monkeypatch):
     assert future.status == "scheduled"
 
 
-def test_failed_verification_is_scheduled_for_retry(db, monkeypatch):
+def test_failed_verification_retries_immediately_three_times(db, monkeypatch):
     now = datetime.now(timezone.utc)
     question = make_question(check_at=now - timedelta(minutes=1))
     db.add(question)
@@ -78,10 +78,20 @@ def test_failed_verification_is_scheduled_for_retry(db, monkeypatch):
 
     process_due_questions(db, now=now)
 
-    assert question.status == "retry_pending"
-    assert question.attempt_count == 1
-    assert question.next_attempt_at is not None
-    assert find_due_questions(db, now=now) == []
+    assert question.status == "failed"
+    assert question.attempt_count == 3
+    assert question.next_attempt_at is None
+
+
+def test_old_retry_pending_question_is_picked_up_without_waiting_for_old_deadline(db):
+    question = make_question(
+        check_at=datetime.now(timezone.utc) + timedelta(days=1), status="retry_pending"
+    )
+    question.next_attempt_at = datetime.now(timezone.utc) + timedelta(hours=6)
+    db.add(question)
+    db.commit()
+
+    assert find_due_questions(db, now=datetime.now(timezone.utc)) == [question]
 
 
 def test_deleted_question_is_not_picked_up_by_scheduler(db):

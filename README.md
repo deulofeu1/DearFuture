@@ -47,7 +47,7 @@ DearFuture 是一只寄往未来的慢递蜗牛。
 | `scheduled` | 信件已经寄出，正在等待约定的未来时刻 |
 | `verifying` | 慢递蜗牛正在寻找现实证据 |
 | `resolved` | 验证完成，回信已经送达 |
-| `retry_pending` | 外部服务暂时没有回应，稍后会再次尝试 |
+| `retry_pending` | 服务重启中断了验证，等待下一次巡检恢复 |
 | `uncertain` | 公开证据不足，未来暂时没有给出明确答案 |
 
 ---
@@ -123,7 +123,7 @@ The central idea is a **long-running asynchronous Agent workflow**: the initial 
 - **Pydantic**：约束 API 输入和 LLM JSON 输出，降低模型文本的不确定性
 - **SQLAlchemy + SQLite**：保存问题、状态、证据和任务重试信息
 - **Alembic**：用版本化迁移管理数据库结构变化
-- **Asyncio Scheduler**：每小时检查到期任务，不需要用户保持在线
+- **Asyncio Scheduler**：在 08:05、12:05、18:05、21:05 检查到期任务，不需要用户保持在线
 - **Retry and recovery**：模型失败与证据不足分开处理，失败任务最多重试三次
 - **Privacy by design**：公开响应不包含邮箱，模型审核结合本地敏感信息规则
 - **Railway + Dockerfile**：单个轻量 Web Service，使用 Volume 持久化 SQLite
@@ -169,7 +169,7 @@ route_research
   └── model failure → mark_research_failed
 ```
 
-Only a valid, structured model result is persisted as a resolved outcome. Insufficient evidence becomes `uncertain`; a failed model call goes to the retry queue instead of being misreported as a conclusion.
+Only a valid, structured model result is persisted as a resolved outcome. Insufficient evidence becomes `uncertain`; a failed model call is retried immediately up to three times instead of being misreported as a conclusion.
 
 ## Data model
 
@@ -204,7 +204,8 @@ DEEPSEEK_BASE_URL=https://api.deepseek.com
 DEEPSEEK_MODEL=deepseek-v4-flash
 ADMIN_TOKEN=your-long-random-admin-token
 SCHEDULER_ENABLED=true
-SCHEDULER_INTERVAL_SECONDS=3600
+SCHEDULER_CHECK_TIMES=08:05,12:05,18:05,21:05
+SCHEDULER_TIMEZONE=Asia/Shanghai
 MAIL_ENABLED=false
 ```
 
@@ -261,13 +262,14 @@ DEEPSEEK_MODEL=deepseek-v4-flash
 APP_BASE_URL=https://dearfuture-production.up.railway.app
 ADMIN_TOKEN=your-long-random-admin-token
 SCHEDULER_ENABLED=true
-SCHEDULER_INTERVAL_SECONDS=3600
+SCHEDULER_CHECK_TIMES=08:05,12:05,18:05,21:05
+ SCHEDULER_TIMEZONE=Asia/Shanghai
 MAIL_ENABLED=false
 ```
 
 4. Generate a Railway public domain if the service does not already have one.
 5. Set the health check path to `/health`.
-6. Keep one running instance so the in-process scheduler does not claim the same task twice.
+6. Keep one running instance so the in-process scheduler does not claim the same task twice. The scheduler checks at 08:05, 12:05, 18:05, and 21:05 in Asia/Shanghai by default.
 
 SQLite is intentional here: the product has low write volume and a single service. If the product grows to multiple instances or high concurrent writes, move the database to PostgreSQL and move scheduled verification to a dedicated Worker or queue.
 

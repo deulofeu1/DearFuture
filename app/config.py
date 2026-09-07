@@ -15,7 +15,8 @@ class Settings(BaseSettings):
     app_base_url: str = "http://127.0.0.1:8000"
     admin_token: Optional[str] = None
     scheduler_enabled: bool = True
-    scheduler_interval_seconds: int = 3600
+    scheduler_check_times: str = "08:05,12:05,18:05,21:05"
+    scheduler_timezone: str = "Asia/Shanghai"
     mail_enabled: bool = False
     resend_api_key: Optional[str] = None
     smtp_host: Optional[str] = None
