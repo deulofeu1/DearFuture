@@ -1,5 +1,9 @@
 const form = document.querySelector("#question-form");
 const message = document.querySelector("#form-message");
+const progress = document.querySelector("#submission-progress");
+const progressLabel = document.querySelector("#progress-label");
+const progressStep = document.querySelector("#progress-step");
+const progressBar = document.querySelector("#progress-bar");
 const wall = document.querySelector("#question-wall");
 const filter = document.querySelector("#category-filter");
 const i18n = window.DearFutureI18n;
@@ -90,9 +94,28 @@ function renderWall(items) {
 let wallItems = [];
 let processingTimer = null;
 let processingStep = 0;
+let submissionStatus = "idle";
+
+function updateProgress(state, percent, label, step = "") {
+  progress.hidden = false;
+  progress.dataset.state = state;
+  progressLabel.textContent = label;
+  progressStep.textContent = step;
+  progressBar.style.width = `${percent}%`;
+}
 
 function showProcessingMessage() {
-  message.textContent = t(`form.processing${processingStep + 1}`);
+  const currentStep = processingStep + 1;
+  const progressValues = [25, 60, 88];
+  submissionStatus = "processing";
+  message.className = "form-message processing";
+  message.textContent = t(`form.processing${currentStep}`);
+  updateProgress(
+    "processing",
+    progressValues[processingStep],
+    t(`form.progress${currentStep}`),
+    t("form.progressStep", { current: currentStep }),
+  );
 }
 
 function startProcessingMessages() {
@@ -152,6 +175,9 @@ form.addEventListener("submit", async (event) => {
     `${data.get("check_date")}T${data.get("check_period")}:00`,
   );
   if (checkAt <= new Date()) {
+    submissionStatus = "failed";
+    updateProgress("failed", 0, t("form.progressFailed"));
+    message.className = "form-message failed";
     message.textContent = t("form.past");
     return;
   }
@@ -164,6 +190,7 @@ form.addEventListener("submit", async (event) => {
   const button = form.querySelector("button[type='submit']");
   startProcessingMessages();
   button.disabled = true;
+  button.setAttribute("aria-busy", "true");
   try {
     const response = await fetch("/api/questions", {
       method: "POST",
@@ -171,7 +198,15 @@ form.addEventListener("submit", async (event) => {
       body: JSON.stringify(payload),
     });
     const body = await response.json();
-    if (!response.ok) throw new Error(body.detail || t("form.failed"));
+    if (!response.ok) {
+      const detail = typeof body.detail === "string" ? body.detail : t("form.failed");
+      const error = new Error(detail);
+      error.isClarification = response.status === 422 && typeof body.detail === "string";
+      throw error;
+    }
+    submissionStatus = "success";
+    updateProgress("success", 100, t("form.progressSuccess"), "✓");
+    message.className = "form-message success";
     message.innerHTML = body.public_request_approved
       ? `${escapeText(t("form.successPublic"))} <a href="/q/${encodeURIComponent(body.public_id)}">${escapeText(t("form.journey"))} →</a>`
       : escapeText(t("form.successPrivate"));
@@ -179,10 +214,20 @@ form.addEventListener("submit", async (event) => {
     setDefaultCheckTime();
     await Promise.all([loadWall(), loadStats()]);
   } catch (error) {
-    message.textContent = error.message;
+    submissionStatus = error.isClarification ? "clarification" : "failed";
+    if (error.isClarification) {
+      updateProgress("clarification", 58, t("form.progressClarification"), "!");
+      message.className = "form-message clarification";
+      message.textContent = `${t("form.clarificationIntro")} ${error.message}`;
+    } else {
+      updateProgress("failed", 0, t("form.progressFailed"));
+      message.className = "form-message failed";
+      message.textContent = error.message;
+    }
   } finally {
     stopProcessingMessages();
     button.disabled = false;
+    button.removeAttribute("aria-busy");
   }
 });
 
@@ -202,7 +247,7 @@ function setDefaultCheckTime() {
 
 window.addEventListener("dearfuture:languagechange", () => {
   if (processingTimer !== null) showProcessingMessage();
-  else message.textContent = "";
+  else if (submissionStatus === "idle") message.textContent = "";
   renderWall(wallItems);
 });
 filter.addEventListener("change", loadWall);

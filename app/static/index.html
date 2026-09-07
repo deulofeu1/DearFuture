@@ -117,6 +117,20 @@
             </button>
             <p id="form-message" class="form-message" role="status"></p>
           </div>
+          <div
+            id="submission-progress"
+            class="submission-progress"
+            hidden
+            aria-live="polite"
+          >
+            <div class="progress-caption">
+              <span id="progress-label"></span>
+              <span id="progress-step"></span>
+            </div>
+            <div class="progress-track" aria-hidden="true">
+              <span id="progress-bar"></span>
+            </div>
+          </div>
         </form>
       </section>
 
@@ -160,7 +174,7 @@
       <span>DearFuture · <span data-i18n="brand.subtitle">未来慢递</span></span
       ><span data-i18n="footer.line">给焦虑一点时间，未来会慢慢回信。</span>
     </footer>
-    <script src="/static/i18n.js?v=4"></script>
-    <script src="/static/app.js?v=4"></script>
+    <script src="/static/i18n.js?v=5"></script>
+    <script src="/static/app.js?v=5"></script>
   </body>
 </html>

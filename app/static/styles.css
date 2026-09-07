@@ -279,6 +279,50 @@ button:disabled {
 .form-message a {
   color: var(--dark);
 }
+.submission-progress {
+  width: 100%;
+  margin-top: 18px;
+}
+.progress-caption {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 7px;
+  color: var(--muted);
+  font: 11px Arial, sans-serif;
+  letter-spacing: 0.04em;
+}
+.progress-track {
+  height: 6px;
+  overflow: hidden;
+  border-radius: 99px;
+  background: #e4e8e0;
+}
+.progress-track span {
+  display: block;
+  width: 0;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent);
+  transition: width 0.4s ease, background 0.3s ease;
+}
+.submission-progress[data-state="success"] .progress-track span {
+  background: #4c8b68;
+}
+.submission-progress[data-state="clarification"] .progress-track span {
+  background: #c48a3b;
+}
+.submission-progress[data-state="failed"] .progress-track span {
+  background: var(--dark);
+}
+.form-message.success {
+  color: #397252;
+}
+.form-message.clarification {
+  color: #996b29;
+}
+.form-message.failed {
+  color: var(--dark);
+}
 .wall-section {
   padding-block: 90px;
 }
