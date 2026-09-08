@@ -52,9 +52,22 @@ def get_llm_client() -> Optional[OpenAI]:
 def _structured_response(
     *, name: str, schema: dict, instructions: str, prompt: str, web_search: bool = False
 ):
+    data, _error = _structured_response_with_error(
+        name=name,
+        schema=schema,
+        instructions=instructions,
+        prompt=prompt,
+        web_search=web_search,
+    )
+    return data
+
+
+def _structured_response_with_error(
+    *, name: str, schema: dict, instructions: str, prompt: str, web_search: bool = False
+) -> tuple[Optional[dict], Optional[str]]:
     client = get_llm_client()
     if client is None:
-        return None
+        return None, "LLM client is not configured"
 
     request = {
         "model": get_settings().deepseek_model,
@@ -70,11 +83,16 @@ def _structured_response(
     try:
         response = client.responses.create(**request)
         if not response.output_text:
-            return None
-        return _load_json(response.output_text)
-    except Exception:
+            logger.warning("DeepSeek returned empty output for %s", name)
+            return None, "The model returned empty output"
+        try:
+            return _load_json(response.output_text), None
+        except Exception as exc:
+            logger.exception("DeepSeek returned invalid JSON for %s", name)
+            return None, f"Invalid JSON response ({type(exc).__name__})"
+    except Exception as exc:
         logger.exception("DeepSeek request failed for %s", name)
-        return None
+        return None, f"Model request failed ({type(exc).__name__})"
 
 
 def _load_json(output_text: str) -> dict:
@@ -129,7 +147,19 @@ def plan_with_model(question: str, check_at: str) -> Optional[ClaimPlan]:
 def verify_with_model(
     *, question: str, claim: str, verification_plan: str, check_at: str
 ) -> Optional[VerificationResult]:
-    data = _structured_response(
+    result, _error = verify_with_model_detailed(
+        question=question,
+        claim=claim,
+        verification_plan=verification_plan,
+        check_at=check_at,
+    )
+    return result
+
+
+def verify_with_model_detailed(
+    *, question: str, claim: str, verification_plan: str, check_at: str
+) -> tuple[Optional[VerificationResult], Optional[str]]:
+    data, error = _structured_response_with_error(
         name="verification_result",
         schema=VerificationResult.model_json_schema(),
         web_search=True,
@@ -148,9 +178,9 @@ def verify_with_model(
         ),
     )
     if data is None:
-        return None
+        return None, error or "The research model could not return a valid result."
     try:
-        return VerificationResult.model_validate(data)
-    except Exception:
+        return VerificationResult.model_validate(data), None
+    except Exception as exc:
         logger.exception("DeepSeek returned an invalid verification result")
-        return None
+        return None, f"Invalid verification result ({type(exc).__name__})"

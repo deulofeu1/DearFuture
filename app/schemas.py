@@ -105,13 +105,21 @@ class AdminQuestionRead(BaseModel):
     intake_record: Optional[dict]
     outcome: Optional[str]
     attempt_count: int
+    last_attempt_at: Optional[datetime]
     last_error: Optional[str]
     next_attempt_at: Optional[datetime]
     created_at: datetime
     resolved_at: Optional[datetime]
     deleted_at: Optional[datetime]
 
-    @field_serializer("check_at", "created_at", "resolved_at", "deleted_at", "next_attempt_at")
+    @field_serializer(
+        "check_at",
+        "created_at",
+        "resolved_at",
+        "deleted_at",
+        "next_attempt_at",
+        "last_attempt_at",
+    )
     def serialize_dates(self, value: Optional[datetime]) -> Optional[datetime]:
         return _as_utc(value)
 

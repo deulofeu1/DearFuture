@@ -1,3 +1,5 @@
+import logging
+import time
 from datetime import datetime, timezone
 from typing import Dict, List, Optional
 
@@ -12,6 +14,8 @@ from app.models import Evidence, Notification, Question
 from app.schemas import QuestionCreate
 
 MAX_VERIFICATION_ATTEMPTS = 3
+RETRY_BACKOFF_SECONDS = (2, 5)
+logger = logging.getLogger(__name__)
 
 
 class QuestionNeedsClarification(ValueError):
@@ -168,6 +172,7 @@ def retry_question(db: Session, public_id: str) -> Optional[Question]:
     question.next_attempt_at = None
     question.last_error = None
     question.attempt_count = 0
+    question.last_attempt_at = None
     _commit(db)
     db.refresh(question)
     return question
@@ -202,6 +207,7 @@ def verify_question(db: Session, question: Question) -> Question:
         question.status = "verifying"
         question.attempt_count += 1
         question.next_attempt_at = None
+        question.last_attempt_at = datetime.now(timezone.utc)
         _commit(db)
 
         result = resolution_graph.invoke(
@@ -216,6 +222,13 @@ def verify_question(db: Session, question: Question) -> Question:
         if not result.get("succeeded"):
             question.last_error = result.get("error", "Verification failed")
             if question.attempt_count < MAX_VERIFICATION_ATTEMPTS:
+                delay = RETRY_BACKOFF_SECONDS[question.attempt_count - 1]
+                logger.warning(
+                    "Verification attempt failed for %s; retrying in %s seconds",
+                    question.public_id,
+                    delay,
+                )
+                time.sleep(delay)
                 continue
             question.status = "failed"
             _commit(db)

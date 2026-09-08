@@ -199,6 +199,7 @@
             <div class="meta">${escapeHtml(question.category)} · 约定 ${formatDate(question.check_at)}
               <span class="status ${deleted ? "deleted" : ""}">${escapeHtml(question.status)}</span></div>
             <div class="meta">创建于 ${formatDate(question.created_at)} · 已尝试 ${question.attempt_count} 次 · ${retryAt}</div>
+            <div class="meta">上次尝试：${question.last_attempt_at ? formatDate(question.last_attempt_at) : "尚未尝试"}</div>
             ${error}
             ${diagnostics}
           </div>

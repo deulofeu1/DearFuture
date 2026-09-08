@@ -3,7 +3,12 @@ from typing import List, Optional, TypedDict
 
 from langgraph.graph import END, START, StateGraph
 
-from app.llm import ClaimPlan, VerificationResult, plan_with_model, verify_with_model
+from app.llm import (
+    ClaimPlan,
+    VerificationResult,
+    plan_with_model,
+    verify_with_model_detailed,
+)
 
 
 class IntakeState(TypedDict, total=False):
@@ -147,14 +152,17 @@ class ResolutionState(TypedDict, total=False):
 
 
 def research_evidence(state: ResolutionState) -> ResolutionState:
-    result = verify_with_model(
+    result, error = verify_with_model_detailed(
         question=state["question"],
         claim=state["claim"],
         verification_plan=state["verification_plan"],
         check_at=state["check_at"],
     )
     if result is None:
-        return {"research": None, "error": "The research model could not return a valid result."}
+        return {
+            "research": None,
+            "error": error or "The research model could not return a valid result.",
+        }
     return {"research": result}
 
 

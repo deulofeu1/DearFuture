@@ -80,6 +80,7 @@ def test_failed_verification_retries_immediately_three_times(db, monkeypatch):
 
     assert question.status == "failed"
     assert question.attempt_count == 3
+    assert question.last_attempt_at is not None
     assert question.next_attempt_at is None
 
 

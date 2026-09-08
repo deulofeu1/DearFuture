@@ -76,6 +76,7 @@ def test_admin_can_retry_an_unresolved_question(client, monkeypatch):
     question = client.get("/api/admin/questions", headers=admin_headers()).json()[0]
     assert question["status"] == "verifying"
     assert question["attempt_count"] == 0
+    assert question["last_attempt_at"] is None
     assert question["next_attempt_at"] is None
 
 

@@ -57,11 +57,17 @@ async def run_scheduler() -> None:
     settings = get_settings()
     check_times = _parse_check_times(settings.scheduler_check_times)
     timezone = ZoneInfo(settings.scheduler_timezone)
+    logger.info(
+        "Scheduler enabled; checks at %s (%s)",
+        settings.scheduler_check_times,
+        settings.scheduler_timezone,
+    )
     while True:
         try:
+            check_started_at = datetime.now(timezone)
+            logger.info("Scheduler check started at %s", check_started_at.isoformat())
             processed = await asyncio.to_thread(run_due_once)
-            if processed:
-                logger.info("Processed %s due DearFuture question(s)", processed)
+            logger.info("Scheduler check finished; processed=%s", processed)
         except asyncio.CancelledError:
             raise
         except Exception:

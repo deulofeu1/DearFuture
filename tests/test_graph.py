@@ -69,19 +69,22 @@ def test_intake_graph_combines_model_and_privacy_rules(monkeypatch):
 
 def test_resolution_graph_persists_structured_evidence(monkeypatch):
     monkeypatch.setattr(
-        "app.graph.verify_with_model",
-        lambda **_kwargs: VerificationResult(
-            enough_evidence=True,
-            verdict="did_not_happen",
-            summary="公开数据没有显示预测发生。",
-            evidence=[
-                EvidenceResult(
-                    title="Official report",
-                    url="https://example.com/report",
-                    excerpt="The measured value stayed below the threshold.",
-                )
-            ],
-            future_letter="你当时的担忧并没有成为现实。",
+        "app.graph.verify_with_model_detailed",
+        lambda **_kwargs: (
+            VerificationResult(
+                enough_evidence=True,
+                verdict="did_not_happen",
+                summary="公开数据没有显示预测发生。",
+                evidence=[
+                    EvidenceResult(
+                        title="Official report",
+                        url="https://example.com/report",
+                        excerpt="The measured value stayed below the threshold.",
+                    )
+                ],
+                future_letter="你当时的担忧并没有成为现实。",
+            ),
+            None,
         ),
     )
     result = resolution_graph.invoke(
@@ -94,7 +97,10 @@ def test_resolution_graph_persists_structured_evidence(monkeypatch):
 
 
 def test_resolution_graph_marks_model_failure_for_retry(monkeypatch):
-    monkeypatch.setattr("app.graph.verify_with_model", lambda **_kwargs: None)
+    monkeypatch.setattr(
+        "app.graph.verify_with_model_detailed",
+        lambda **_kwargs: (None, "test model failure"),
+    )
     result = resolution_graph.invoke(
         {"question": "Q", "claim": "C", "verification_plan": "P", "check_at": "2026-10-05"}
     )
