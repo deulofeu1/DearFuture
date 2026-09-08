@@ -168,7 +168,10 @@ def verify_with_model_detailed(
             "sources, prefer primary and reputable sources, and compare them with the saved "
             "claim and criteria. Never invent evidence or URLs. If evidence is insufficient, "
             "set enough_evidence to false and verdict to uncertain. Write a concise summary "
-            "and a warm future letter in the same language as the original question."
+            "and a warm future letter in the same language as the original question. Return "
+            "only the letter body: do not add a greeting such as 'Dear Future You' or "
+            "'亲爱的未来的我', and do not add a signature. The application will add the "
+            "correct greeting for the past self."
         ),
         prompt=(
             f"Original question: {question}\n"

@@ -3,6 +3,7 @@ from typing import List, Optional, TypedDict
 
 from langgraph.graph import END, START, StateGraph
 
+from app.letters import clean_letter_body
 from app.llm import (
     ClaimPlan,
     VerificationResult,
@@ -180,7 +181,7 @@ def finalize_resolution(state: ResolutionState) -> ResolutionState:
         "outcome": result.verdict,
         "summary": result.summary.strip(),
         "evidence": [item.model_dump() for item in result.evidence],
-        "future_letter": result.future_letter.strip(),
+        "future_letter": clean_letter_body(result.future_letter),
     }
 
 
@@ -191,7 +192,7 @@ def finalize_inconclusive(state: ResolutionState) -> ResolutionState:
         "outcome": "uncertain",
         "summary": result.summary.strip(),
         "evidence": [item.model_dump() for item in result.evidence],
-        "future_letter": result.future_letter.strip(),
+        "future_letter": clean_letter_body(result.future_letter),
     }
 
 

@@ -29,6 +29,18 @@ const arrivalLabel = (value) =>
 
 const safeUrl = (value) => (/^https?:\/\//i.test(value) ? value : "#");
 
+function cleanLetterBody(value) {
+  let body = String(value ?? "").trim();
+  let previous = null;
+  const salutationPattern =
+    /^\s*(?:亲爱的(?:过去的你|未来的我|未来的你|过去的我)\s*[：:,，]?|dear\s+(?:past\s+you|future\s+me|future\s+you|past\s+me|past\s+self|future\s+self)\s*[,：:]?)\s*/i;
+  while (body && body !== previous) {
+    previous = body;
+    body = body.replace(salutationPattern, "").trimStart();
+  }
+  return body;
+}
+
 function categoryLabel(category) {
   return t(`category.${category || "general"}`);
 }
@@ -110,7 +122,7 @@ function render(item) {
             </section>
             <section class="letter">
               <p>${escapeText(t("detail.salutation"))}</p>
-              <div>${escapeText(item.future_letter).replace(/\n/g, "<br>")}</div>
+              <div>${escapeText(cleanLetterBody(item.future_letter)).replace(/\n/g, "<br>")}</div>
             </section>
             <details class="sources">
               <summary>${escapeText(t("detail.sources"))}</summary>

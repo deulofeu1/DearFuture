@@ -82,7 +82,7 @@ def test_resolution_graph_persists_structured_evidence(monkeypatch):
                         excerpt="The measured value stayed below the threshold.",
                     )
                 ],
-                future_letter="你当时的担忧并没有成为现实。",
+                future_letter="Dear Future You,\n你当时的担忧并没有成为现实。",
             ),
             None,
         ),
@@ -94,6 +94,7 @@ def test_resolution_graph_persists_structured_evidence(monkeypatch):
     assert result["succeeded"] is True
     assert result["outcome"] == "did_not_happen"
     assert result["evidence"][0]["title"] == "Official report"
+    assert result["future_letter"] == "你当时的担忧并没有成为现实。"
 
 
 def test_resolution_graph_marks_model_failure_for_retry(monkeypatch):

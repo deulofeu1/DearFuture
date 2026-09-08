@@ -7,6 +7,7 @@ from typing import Optional
 from urllib.request import Request, urlopen
 
 from app.config import get_settings
+from app.letters import is_chinese_text
 
 logger = logging.getLogger(__name__)
 
@@ -40,12 +41,13 @@ def send_result_email(
         return DeliveryResult(status="failed", error="MAIL_FROM is required")
 
     subject = "🐌 DearFuture：一封来自未来的慢递到了"
+    salutation = "亲爱的过去的你：" if is_chinese_text(question) else "Dear past you,"
     body = (
         f"你曾经把这件心事交给未来：\n{question}\n\n"
         f"小蜗牛从未来捎回一句话：\n"
         f"{OUTCOME_LABELS.get(outcome, '未来带回了一些新的线索')}\n\n"
         f"后来发生的故事：\n{summary}\n\n"
-        f"亲爱的过去的你：\n{letter}\n"
+        f"{salutation}\n{letter}\n"
     )
     if public_url:
         body += f"\n查看公开页面：{public_url}\n"
