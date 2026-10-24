@@ -4,7 +4,9 @@
 > Send today's worries to the future. Reality will write back.
 
 <p>
-  <a href="https://dearfuture-production.up.railway.app/">🌐 在线体验 / Live Demo</a>
+  <a href="#run-locally">💻 本地运行 / Run locally</a>
+  ·
+  <a href="#deployment">🚀 自行部署 / Self-host</a>
   ·
   <a href="https://github.com/deulofeu1/DearFuture">💻 GitHub</a>
 </p>
@@ -19,7 +21,7 @@ DearFuture 是一只寄往未来的慢递蜗牛。
 
 选择一个未来日期和时刻后，DearFuture 会把问题整理成可以验证的声明。约定时间到达后，异步 Agent 会搜索现实中的公开证据，判断事情后来是否发生，并生成一封来自未来的回信。
 
-现在就可以打开[在线体验](https://dearfuture-production.up.railway.app/)：
+公开演示服务目前已暂停。你可以按照下方的[本地运行](#run-locally)或[自行部署](#deployment)说明，使用自己的 DeepSeek API Key 启动完整产品：
 
 1. 写下一件你正在担心的事；
 2. 选择未来的日期和“清晨 / 正午 / 午后 / 黄昏 / 入夜”；
@@ -62,7 +64,7 @@ Write down a future-facing question such as:
 
 Choose a future date and a gentle time of day. DearFuture turns the question into a testable claim. When the date arrives, an asynchronous AI agent searches public evidence, evaluates what actually happened, and writes a warm letter back to the past you.
 
-Try it now at the [Live Demo](https://dearfuture-production.up.railway.app/):
+The hosted demo is currently offline. Follow [Run locally](#run-locally) or [Deployment](#deployment) to run the full product with your own DeepSeek API key:
 
 1. Write down something you are worried about;
 2. Choose a future date and time of day;
@@ -188,11 +190,13 @@ The public URL uses a UUID `public_id` instead of exposing the sequential databa
 ## Run locally
 
 The project uses [uv](https://docs.astral.sh/uv/) to manage the Python environment.
+Python 3.9 or later is required. Clone the repository and install its dependencies:
 
 ```bash
+git clone https://github.com/deulofeu1/DearFuture.git
+cd DearFuture
 uv sync
 cp .env.example .env
-uv run uvicorn app.main:app --reload
 ```
 
 Set the DeepSeek key in `.env`:
@@ -208,6 +212,14 @@ SCHEDULER_CHECK_TIMES=08:05,12:05,18:05,21:05
 SCHEDULER_TIMEZONE=Asia/Shanghai
 MAIL_ENABLED=false
 ```
+
+Use your own API key; model API usage may incur charges. No email account or custom domain is needed for local use. Start the application after saving `.env`:
+
+```bash
+uv run uvicorn app.main:app --reload
+```
+
+Keep the application running for scheduled verification. If it is stopped, due tasks remain in SQLite and are checked on the next startup.
 
 Local pages:
 
@@ -244,9 +256,7 @@ curl -X POST http://127.0.0.1:8000/api/questions \
 
 ## Deployment
 
-The public demo is deployed on Railway:
-
-<https://dearfuture-production.up.railway.app/>
+The previous Railway demo is offline. You can deploy your own instance using the repository's Docker configuration and your own credentials. Railway is one deployment option:
 
 For the current single-instance SQLite deployment:
 
@@ -259,11 +269,11 @@ DATABASE_URL=sqlite:////data/dear_future.sqlite3
 DEEPSEEK_API_KEY=your-key
 DEEPSEEK_BASE_URL=https://api.deepseek.com
 DEEPSEEK_MODEL=deepseek-v4-flash
-APP_BASE_URL=https://dearfuture-production.up.railway.app
+APP_BASE_URL=https://your-service.up.railway.app
 ADMIN_TOKEN=your-long-random-admin-token
 SCHEDULER_ENABLED=true
 SCHEDULER_CHECK_TIMES=08:05,12:05,18:05,21:05
- SCHEDULER_TIMEZONE=Asia/Shanghai
+SCHEDULER_TIMEZONE=Asia/Shanghai
 MAIL_ENABLED=false
 ```
 
